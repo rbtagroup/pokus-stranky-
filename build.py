@@ -1,6 +1,6 @@
 from pathlib import Path
 from html import escape
-import json, textwrap, shutil
+import json, textwrap, shutil, hashlib
 
 import os
 # Ve výchozím stavu se web generuje přímo do složky se skriptem. Jiný cíl lze
@@ -232,6 +232,19 @@ def footer_html(depth):
     <div class="mobile-sticky"><a class="btn btn-gold" href="tel:{PHONE_HREF}">{icon('phone')} Zavolat taxi</a><a class="btn btn-light" href="{ORDER_URL}">{icon('calendar')} Objednat online</a></div>
     <div class="cookie-banner" data-cookie-banner><div><strong>Soubory cookies</strong><p>Používáme nezbytné cookies a volitelnou anonymní analytiku. Nastavení můžete kdykoli změnit.</p></div><div class="cookie-actions"><button class="btn btn-ghost btn-sm" data-cookie-decline>Odmítnout</button><button class="btn btn-gold btn-sm" data-cookie-accept>Přijmout</button></div></div>'''
 
+
+# Assety jdou z Vercelu s cache-control: immutable, max-age=1 rok. Bez verze
+# v URL by vracející se návštěvník držel starý JS/CSS navždy (kalkulačka by
+# počítala podle starého tarifu). Proto k nim připojujeme hash obsahu.
+def asset_ver(*parts):
+    h = hashlib.md5()
+    for x in parts:
+        if isinstance(x, Path):
+            h.update(x.read_bytes() if x.exists() else b'')
+        else:
+            h.update(x.encode('utf-8'))
+    return h.hexdigest()[:8]
+
 def head(title, desc, slug='', depth=0, extra_schema=None, lang='cs'):
     canonical = SITE + ('/' + slug.strip('/') + '/' if slug else '/')
     schemas = [{
@@ -241,10 +254,10 @@ def head(title, desc, slug='', depth=0, extra_schema=None, lang='cs'):
       'openingHours':'Mo-Su 00:00-23:59','sameAs':[FACEBOOK,INSTAGRAM,GOOGLE_REVIEWS]
     }]
     if extra_schema: schemas.append(extra_schema)
-    return f'''<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>{escape(title)}</title><meta name="description" content="{escape(desc)}"><link rel="canonical" href="{canonical}"><meta name="theme-color" content="#06172c"><meta property="og:title" content="{escape(title)}"><meta property="og:description" content="{escape(desc)}"><meta property="og:type" content="website"><meta property="og:url" content="{canonical}"><meta property="og:image" content="{SITE}/wp-content/uploads/2026/05/Navrh-bez-nazvu-2-1024x768.png"><link rel="icon" href="{rel(depth,LOGO)}"><link rel="stylesheet" href="{rel(depth,'assets/css/style.css')}"><link rel="stylesheet" href="{rel(depth,'assets/css/theme-emerald.css')}"><script type="application/ld+json">{json.dumps(schemas,ensure_ascii=False)}</script></head>'''
+    return f'''<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>{escape(title)}</title><meta name="description" content="{escape(desc)}"><link rel="canonical" href="{canonical}"><meta name="theme-color" content="#06172c"><meta property="og:title" content="{escape(title)}"><meta property="og:description" content="{escape(desc)}"><meta property="og:type" content="website"><meta property="og:url" content="{canonical}"><meta property="og:image" content="{SITE}/wp-content/uploads/2026/05/Navrh-bez-nazvu-2-1024x768.png"><link rel="icon" href="{rel(depth,LOGO)}"><link rel="stylesheet" href="{rel(depth,'assets/css/style.css')}?v={CSS_VER}"><link rel="stylesheet" href="{rel(depth,'assets/css/theme-emerald.css')}?v={THEME_VER}"><script type="application/ld+json">{json.dumps(schemas,ensure_ascii=False)}</script></head>'''
 
 def page_shell(title, desc, body, slug='', depth=1, extra_schema=None, lang='cs'):
-    return head(title,desc,slug,depth,extra_schema,lang) + '<body>' + nav_html(depth) + f'<main id="content">{body}</main>' + footer_html(depth) + f'<script src="{rel(depth,"assets/js/main.js")}" defer></script></body></html>'
+    return head(title,desc,slug,depth,extra_schema,lang) + '<body>' + nav_html(depth) + f'<main id="content">{body}</main>' + footer_html(depth) + f'<script src="{rel(depth,"assets/js/main.js")}?v={JS_VER}" defer></script></body></html>'
 
 # Jednotná zmínka o flotile. Kapacity odpovídají sekci "Vozový park" na homepage,
 # aby se údaje napříč webem nerozcházely.
@@ -449,11 +462,14 @@ js = r'''
 (ASSETS/'js').mkdir(parents=True,exist_ok=True)
 (ASSETS/'css'/'style.css').write_text(css,encoding='utf-8')
 (ASSETS/'js'/'main.js').write_text(js,encoding='utf-8')
+CSS_VER=asset_ver(css)
+JS_VER=asset_ver(js)
+THEME_VER=asset_ver(ASSETS/'css'/'theme-emerald.css')
 
 # Home
 home_title='RB Taxi Hodonín | Taxi nonstop 24/7, cena předem, aplikace'
 home_desc='RB Taxi Hodonín – nonstop taxislužba v Hodoníně a okolí. Cena předem, online objednávka, mobilní aplikace, platba kartou i hotově.'
-(ROOT/'index.html').write_text(head(home_title,home_desc,'',0)+ '<body>'+nav_html(0)+f'<main id="content">{home_body()}</main>'+footer_html(0)+'<script src="assets/js/main.js" defer></script></body></html>',encoding='utf-8')
+(ROOT/'index.html').write_text(head(home_title,home_desc,'',0)+ '<body>'+nav_html(0)+f'<main id="content">{home_body()}</main>'+footer_html(0)+f'<script src="assets/js/main.js?v={JS_VER}" defer></script></body></html>',encoding='utf-8')
 
 # Main content pages
 pages = {}
@@ -803,7 +819,7 @@ for s in all_slugs:
 sitemap.append('</urlset>')
 (ROOT/'sitemap.xml').write_text('\n'.join(sitemap),encoding='utf-8')
 (ROOT/'robots.txt').write_text(f'User-agent: *\nAllow: /\nSitemap: {SITE}/sitemap.xml\n',encoding='utf-8')
-(ROOT/'404.html').write_text(head('Stránka nenalezena – RB Taxi Hodonín','Požadovaná stránka nebyla nalezena.','404',0)+'<body>'+nav_html(0)+f'<main><section class="inner-hero"><div class="container"><span class="eyebrow">404</span><h1>Stránka nebyla nalezena</h1><p>Vraťte se na úvod nebo zavolejte dispečink.</p>{cta_pair()}</div></section></main>'+footer_html(0)+'<script src="assets/js/main.js" defer></script></body></html>',encoding='utf-8')
+(ROOT/'404.html').write_text(head('Stránka nenalezena – RB Taxi Hodonín','Požadovaná stránka nebyla nalezena.','404',0)+'<body>'+nav_html(0)+f'<main><section class="inner-hero"><div class="container"><span class="eyebrow">404</span><h1>Stránka nebyla nalezena</h1><p>Vraťte se na úvod nebo zavolejte dispečink.</p>{cta_pair()}</div></section></main>'+footer_html(0)+f'<script src="assets/js/main.js?v={JS_VER}" defer></script></body></html>',encoding='utf-8')
 
 README=f'''# RB Taxi Hodonín – moderní statický web
 
