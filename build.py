@@ -55,6 +55,25 @@ LOCATIONS = [
     ('Holíč', 'taxi-holic'), ('Skalica', 'taxi-skalica')
 ]
 
+# Další obsluhované obce z taxihodonin.com. Drží se stranou od LOCATIONS, protože
+# LOCATIONS pohání chipy na homepage a řádek v patičce — ty by 22 položek přeplnily.
+# Do prokliků mezi lokalitami a do sitemapy jdou přes ALL_LOCATIONS.
+EXTRA_LOCATIONS = [
+    ('Dolní Bojanovice', 'taxi-dolni-bojanovice'), ('Mikulčice', 'taxi-mikulcice'),
+    ('Prušánky', 'taxi-prusanky'), ('Moravská Nová Ves', 'taxi-moravska-nova-ves'),
+    ('Hrušky', 'taxi-hrusky'), ('Milotice', 'taxi-milotice'),
+    ('Vacenovice', 'taxi-vacenovice'), ('Vracov', 'taxi-vracov'),
+    ('Bzenec', 'taxi-bzenec'), ('Petrov', 'taxi-petrov'),
+    ('Sudoměřice', 'taxi-sudomerice'),
+]
+ALL_LOCATIONS = LOCATIONS + EXTRA_LOCATIONS
+
+# Časté cíle (POI) — samostatné stránky mimo obce.
+POI = [
+    ('Nádraží Hodonín', 'taxi-hodonin-nadrazi'),
+    ('Nemocnice Hodonín', 'taxi-nemocnice-hodonin'),
+]
+
 ICONS = {
 'phone': '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L8 9.73a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92z"/></svg>',
 'calendar': '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>',
@@ -109,7 +128,7 @@ def nav_html(depth):
 
 def footer_html(depth):
     service_links = ''.join(f'<a href="{rel(depth,s)}">{n}</a>' for n,s,_,_ in SERVICES[:10])
-    company = [('O nás','o-nas'),('Kariéra','kariera'),('Kontakt','kontakt'),('Mobilní aplikace','mobilni-aplikace'),('Časté otázky','caste-dotazy'),('Doporučte RB Taxi','doporucte'),('Reference','reference')]
+    company = [('O nás','o-nas'),('Kariéra','kariera'),('Kontakt','kontakt'),('Mobilní aplikace','mobilni-aplikace'),('Časté otázky','caste-dotazy'),('Doporučte RB Taxi','doporucte'),('Reference','reference'),('Vozový park a oblast působení','vozovy-park-a-oblast-pusobeni'),('Fakta o RB Taxi','fakta-o-rb-taxi')]
     company_links = ''.join(f'<a href="{rel(depth,s)}">{n}</a>' for n,s in company)
     legal = [('Obchodní podmínky','obchodni-podminky'),('Ochrana osobních údajů','ochrana-osobnich-udaju'),('Cookies','cookies'),('Reklamace a storno','reklamace-a-storno')]
     legal_links = ''.join(f'<a href="{rel(depth,s)}">{n}</a>' for n,s in legal)
@@ -121,7 +140,7 @@ def footer_html(depth):
         <div><h3>Společnost</h3><div class="footer-links">{company_links}{legal_links}</div></div>
         <div><h3>Kontakt</h3><div class="footer-contact"><a href="tel:{PHONE_HREF}">{PHONE}</a><a href="tel:{PHONE_BACKUP_HREF}">{PHONE_BACKUP}</a><a href="mailto:{EMAIL}">{EMAIL}</a><p>RB Group s.r.o.<br>U Tirexu 3543<br>695 01 Hodonín<br>IČ: 14278154<br>DIČ: CZ14278154</p></div></div>
       </div>
-      <div class="container locations-line"><strong>Jezdíme také:</strong> {locs}</div>
+      <div class="container locations-line"><strong>Jezdíme také:</strong> {locs} · <a href="{rel(depth,'vozovy-park-a-oblast-pusobeni')}">celá oblast působení</a></div>
       <div class="container footer-bottom"><span>© 2026 RB Group s.r.o. Všechna práva vyhrazena.</span><span>Oficiální web RB Taxi Hodonín</span></div>
     </footer>
     <div class="mobile-sticky"><a class="btn btn-gold" href="tel:{PHONE_HREF}">{icon('phone')} Zavolat taxi</a><a class="btn btn-light" href="{ORDER_URL}">{icon('calendar')} Objednat online</a></div>
@@ -218,19 +237,20 @@ def make_service_page(name, slug, kicker, lead, intro, bullets, sections, image=
     content += f'<section class="final-cta"><div class="container"><div><span class="eyebrow">RB Taxi Hodonín</span><h2>Domluvte si jízdu</h2><p>Telefonicky, online nebo v mobilní aplikaci.</p></div>{cta_pair()}</div></section>'
     return content, schema
 
-def location_body(city, slug, lead, routes, notes, popular=None):
+def location_body(city, slug, lead, routes, notes, popular=None, faq=None):
     route_html=''.join(f'<li>{icon("pin")} {r}</li>' for r in routes)
-    other=''.join(f'<a href="../{s}/">Taxi {n}</a>' for n,s in LOCATIONS if s!=slug)
+    other=''.join(f'<a href="../{s}/">Taxi {n}</a>' for n,s in ALL_LOCATIONS if s!=slug)
     pop=''
     if popular:
         rows=''.join(f'<tr><td>{a}</td><td>{b}</td></tr>' for a,b in popular)
         pop=f'<h2>Orientační ceny oblíbených tras</h2><div class="table-wrap"><table><thead><tr><th>Trasa</th><th>Cena od</th></tr></thead><tbody>{rows}</tbody></table></div>'
-    faq=[(f'Jezdí RB Taxi v lokalitě {city} nonstop?',f'Ano, dispečink funguje nonstop. Přesný čas příjezdu závisí na aktuální dostupnosti vozů a provozu.'),(f'Jak objednat taxi v {city}?',f'Zavolejte na {PHONE}, použijte online objednávku nebo mobilní aplikaci RB Taxi.'),('Lze cenu ověřit předem?','Ano, přesnou trasu zadejte do online objednávky nebo aplikace. U delších jízd lze cenu potvrdit s dispečinkem.'),('Mohu platit kartou?','Ano, ve voze lze platit kartou i hotově podle dostupnosti terminálu.')]
+    # Lokalitě vlastní FAQ (převzaté z taxihodonin.com) má přednost; obecné je záloha.
+    faq=faq or [(f'Jezdí RB Taxi v lokalitě {city} nonstop?',f'Ano, dispečink funguje nonstop. Přesný čas příjezdu závisí na aktuální dostupnosti vozů a provozu.'),(f'Jak objednat taxi v {city}?',f'Zavolejte na {PHONE}, použijte online objednávku nebo mobilní aplikaci RB Taxi.'),('Lze cenu ověřit předem?','Ano, přesnou trasu zadejte do online objednávky nebo aplikace. U delších jízd lze cenu potvrdit s dispečinkem.'),('Mohu platit kartou?','Ano, ve voze lze platit kartou i hotově podle dostupnosti terminálu.')]
     schema={'@context':'https://schema.org','@type':'FAQPage','mainEntity':[{'@type':'Question','name':q,'acceptedAnswer':{'@type':'Answer','text':a}} for q,a in faq]}
     body=inner_hero('Lokální taxi',f'Taxi {city}',lead,'octavia.png')
     body+=f'''<section class="section"><div class="container content-grid"><article class="prose"><h2>Taxi {city} – rychle a bezpečně</h2><p>RB Taxi zajišťuje jízdy mezi lokalitou {city}, Hodonínem, okolními obcemi, Slovenskem i letišti. Objednat můžete telefonicky, online nebo přes mobilní aplikaci.</p><h2>Typické trasy</h2><ul class="route-list">{route_html}</ul><h2>Kdy objednat předem</h2><p>{notes}</p><h2>Cena a platba</h2><p>Cena pro přesně zadanou trasu se zobrazí v online objednávce nebo aplikaci. Při změně trasy, čekání či mezizastávce se může upravit podle skutečné jízdy. Platba je možná hotově i kartou.</p>{pop}</article><aside class="side-card"><span class="kicker">NONSTOP 24/7</span><h3>Objednejte taxi</h3><a class="big-phone" href="tel:{PHONE_HREF}">{PHONE}</a><a class="btn btn-gold" href="{ORDER_URL}">Objednat online</a><p>U pátečních a sobotních nocí, akcí, ranních odjezdů a letišť doporučujeme rezervaci předem.</p></aside></div></section>
     <section class="section section-muted"><div class="container narrow">{section_intro('Časté otázky',f'Taxi {city} – praktické informace','Objednání, cena, platba a dostupnost.')}{faq_html(faq)}</div></section>
-    <section class="section"><div class="container">{section_intro('Další lokality','Jezdíme po celém regionu','Vyberte nejbližší lokalitu nebo zavolejte dispečinku.')}<div class="location-chips">{other}</div></div></section>'''
+    <section class="section"><div class="container">{section_intro('Další lokality','Jezdíme po celém regionu','Vyberte nejbližší lokalitu nebo zavolejte dispečinku.')}<div class="location-chips">{other}</div><p class="notice"><a href="../vozovy-park-a-oblast-pusobeni/">Zobrazit celou oblast působení a vozový park</a></p></div></section>'''
     return body,schema
 
 # CSS
@@ -393,15 +413,82 @@ loc_data={
 'Strážnice':('Taxi Strážnice, Slovácko, Hodonín, Rohatec a okolí — akce, nádraží i noční odvozy.',['Strážnice → Hodonín','Strážnice → Rohatec','Strážnice → Veselí nad Moravou','Strážnice → Skalica','Strážnice → letiště Vídeň'],'Při folklorních akcích, festivalech a víkendech rezervujte co nejdříve.',None),
 'Holíč':('Přeshraniční taxi Holíč – Hodonín, Skalica a okolí.',['Holíč → Hodonín','Holíč → Skalica','Holíč → Břeclav','Holíč → letiště Bratislava','Holíč → letiště Vídeň'],'U přeshraniční cesty mějte platný doklad a objednávku řešte s předstihem.',None),
 'Skalica':('Taxi Skalica, Hodonín, Holíč a okolí — přeshraniční jízdy, nádraží, práce i letiště.',['Skalica → Hodonín','Skalica → Holíč','Skalica → Strážnice','Skalica → letiště Bratislava','Skalica → letiště Vídeň'],'U přeshraničního vyzvednutí a delších tras doporučujeme rezervaci předem a platný cestovní doklad.',None),
+# --- Obce převzaté z taxihodonin.com (lead, trasy, doporučení i FAQ jsou z živého webu) ---
+'Dolní Bojanovice':('V Dolních Bojanovicích zajišťujeme hlavně plánované odvozy do Hodonína, na nádraží, k lékaři, do zaměstnání a zpět z rodinných nebo společenských akcí. Přesnou dostupnost potvrdí dispečink podle vytížení vozů.',['Dolní Bojanovice → Hodonín centrum','Dolní Bojanovice → nemocnice a ordinace v Hodoníně','Dolní Bojanovice → Lužice a Moravská Nová Ves','Dolní Bojanovice → Mutěnice a Prušánky','Dolní Bojanovice → letiště Vídeň / Bratislava'],'U ranních odjezdů, nočních návratů a letiště doporučujeme rezervaci předem. Uveďte počet osob, zavazadla a přesné místo nástupu.',None),
+'Mikulčice':('Pro Mikulčice řešíme jízdy do Hodonína a okolních obcí, cesty na vlak, k lékaři, do práce, návraty z akcí i předem plánované transfery. Při objednávce pomůže přesná část obce nebo orientační bod.',['Mikulčice → Hodonín centrum a nádraží','Mikulčice → Lužice a Moravská Nová Ves','Mikulčice → Břeclav','Mikulčice → Slovanské hradiště a okolí','Mikulčice → letiště Vídeň / Bratislava'],'V Mikulčicích doporučujeme předobjednávku při cestě na vlak, letiště, ranní směnu nebo při návratu z večerní akce.',None),
+'Prušánky':('V Prušánkách zajišťujeme odvozy do Hodonína a Břeclavi, cesty do práce, k lékaři, návraty z oslav a vinařských akcí i plánované dálkové trasy. U sklepů a akcí uveďte přesný orientační bod.',['Prušánky → Hodonín','Prušánky → Břeclav','Prušánky → Dolní Bojanovice a Moravská Nová Ves','Prušánky → Nechory a místní akce','Prušánky → letiště Vídeň / Bratislava'],'U večerních akcí, sklepů a víkendových návratů doporučujeme rezervovat odvoz dopředu. Pro skupiny uveďte počet cestujících.',None),
+'Moravská Nová Ves':('Z Moravské Nové Vsi zajišťujeme plánované jízdy do Hodonína, Břeclavi, okolních obcí, na nádraží, k lékaři, do práce i z místních akcí. U delších cest doporučujeme rezervaci s předstihem.',['Moravská Nová Ves → Hodonín','Moravská Nová Ves → Břeclav','Moravská Nová Ves → Mikulčice a Lužice','Moravská Nová Ves → vlakové nádraží','Moravská Nová Ves → letiště Vídeň / Bratislava'],'Pro ranní spoje, firemní směny, noční návraty a letištní transfery objednávejte předem. Dispečink potvrdí vhodný čas přistavení.',None),
+'Hrušky':('Pro Hrušky zajišťujeme především plánované regionální jízdy do Hodonína, Břeclavi a okolních obcí, cesty na vlak, do zaměstnání, k lékaři a na letiště. Dostupnost přistavení potvrdí dispečink.',['Hrušky → Hodonín','Hrušky → Břeclav','Hrušky → Moravská Nová Ves','Hrušky → vlakové nádraží a firemní směny','Hrušky → letiště Vídeň / Bratislava'],'U Hrušek doporučujeme objednat vůz předem zejména pro ranní odjezd, návazný spoj, směnu nebo delší trasu.',None),
+'Milotice':('Milotice obsluhujeme pro plánované jízdy do Hodonína a Kyjova, cesty do práce, k lékaři, na společenské akce a k zámku i pro delší transfery. U akcí doporučujeme domluvit místo a čas nástupu předem.',['Milotice → Hodonín','Milotice → Kyjov','Milotice → Ratíškovice a Dubňany','Milotice → zámek a místní akce','Milotice → letiště Vídeň / Bratislava / Brno'],'Při kulturních akcích, svatbách a večerních návratech objednávejte s předstihem. U skupin sdělte počet osob a zavazadel.',None),
+'Vacenovice':('Z Vacenovic zajišťujeme plánované odvozy do Hodonína, Kyjova, Ratíškovic a okolí, na vlak, k lékaři, do práce i zpět z večerních akcí. Pro vzdálenější trasy je vhodná předobjednávka.',['Vacenovice → Hodonín','Vacenovice → Kyjov','Vacenovice → Ratíškovice a Milotice','Vacenovice → nádraží a firemní směny','Vacenovice → letiště Vídeň / Bratislava / Brno'],'Předobjednávku doporučujeme u ranních spojů, nočních návratů, firemních směn a letištních transferů.',None),
+'Vracov':('Pro Vracov řešíme hlavně plánované jízdy do Hodonína, Kyjova a Bzence, cesty na vlak, k lékaři, do práce, návraty z akcí a delší transfery. Přesný čas přistavení závisí na dostupnosti vozů.',['Vracov → Hodonín','Vracov → Kyjov','Vracov → Bzenec','Vracov → vlakové nádraží a večerní akce','Vracov → letiště Vídeň / Bratislava / Brno'],'Vzhledem ke vzdálenosti od Hodonína doporučujeme objednávat s předstihem, zejména v noci, o víkendech a při cestě na letiště nebo vlak.',None),
+'Bzenec':('Pro Bzenec zajišťujeme jízdy do Hodonína, Kyjova, Veselí nad Moravou a Strážnice, cesty na vlak, k lékaři, na firemní směny i návraty z vinařských akcí. U delších tras a letiště doporučujeme objednávku dopředu.',['Bzenec → Hodonín centrum a nádraží','Bzenec → Kyjov a Vracov','Bzenec → Veselí nad Moravou a Strážnice','Bzenec → vinné sklepy a kulturní akce','Bzenec → letiště Vídeň / Bratislava / Brno'],'Ze Bzence je vhodná předobjednávka hlavně večer, o víkendech, při vinařských akcích a u cest na vlak nebo letiště.',None),
+'Petrov':('Petrov obsluhujeme pro jízdy do Hodonína, Strážnice a Sudoměřic, cesty na vlak, k lékaři, na firemní směny i pro návraty z akcí a vinných sklepů Plže. U delších tras a letiště doporučujeme objednávku dopředu.',['Petrov → Hodonín centrum a nádraží','Petrov → Strážnice a Sudoměřice','Petrov → Skalica a Veselí nad Moravou','Petrov → vinné sklepy Plže a kulturní akce','Petrov → letiště Vídeň / Bratislava / Brno'],'Z Petrova je vhodná předobjednávka hlavně večer, o víkendech, při akcích ve sklepech Plže a u cest na vlak nebo letiště.',None),
+'Sudoměřice':('Sudoměřice obsluhujeme pro jízdy do Hodonína, Strážnice a Petrova, cesty na vlak, k lékaři, na firemní směny, k Baťovu kanálu i pro návraty z akcí. Řešíme také přeshraniční jízdy do Skalice a letištní transfery.',['Sudoměřice → Hodonín centrum a nádraží','Sudoměřice → Strážnice a Petrov','Sudoměřice → Skalica a přeshraniční jízdy','Sudoměřice → Baťův kanál a kulturní akce','Sudoměřice → letiště Vídeň / Bratislava / Brno'],'Ze Sudoměřic doporučujeme objednávat s předstihem hlavně delší trasy, přeshraniční jízdy, letiště a víkendové večerní návraty.',None),
 }
-for city,slug in LOCATIONS:
+
+# FAQ převzaté z odpovídajících stránek na taxihodonin.com.
+loc_faq={
+'Dolní Bojanovice':[('Lze objednat odvoz do Hodonína?','Ano, trasu zajistíme podle aktuální dostupnosti vozů.'),('Jezdíte i v noci?','Dispečink funguje nonstop; v noci doporučujeme předobjednávku.'),('Lze objednat větší vůz?','Ano podle dostupnosti. Počet osob a zavazadla uveďte při objednávce.')],
+'Mikulčice':[('Přijedete na přesnou adresu v Mikulčicích?','Ano, při objednávce uveďte ulici, číslo nebo jasný orientační bod.'),('Lze platit kartou?','Ano. Platba je možná hotově i kartou podle zvoleného způsobu objednávky.'),('Jezdíte do Břeclavi?','Ano, plánované regionální jízdy řešíme podle dostupnosti vozů.')],
+'Prušánky':[('Vyzvednete nás v Nechorách?','Ano podle dostupnosti; při objednávce sdělte přesný sklep nebo orientační bod.'),('Je možné objednat větší vůz?','Ano podle dostupnosti. Počet osob uveďte hned při objednávce.'),('Jezdíte také na letiště?','Ano, letištní transfery objednávejte s předstihem.')],
+'Moravská Nová Ves':[('Jezdíte směrem na Hodonín i Břeclav?','Ano, obě trasy řešíme podle aktuální dostupnosti.'),('Můžu objednat taxi na vlak?','Ano, doporučujeme uvést čas odjezdu a ponechat si rezervu.'),('Lze vzít více zavazadel?','Ano, počet a velikost zavazadel uveďte předem kvůli volbě vozu.')],
+'Hrušky':[('Lze objednat taxi na konkrétní vlak?','Ano, uveďte čas odjezdu a počítejte s bezpečnou rezervou.'),('Jezdíte do Břeclavi i Hodonína?','Ano, obě trasy zajišťujeme podle dostupnosti vozů.'),('Mohu platit kartou?','Ano. Platba je možná hotově i kartou podle zvoleného způsobu objednávky.')],
+'Milotice':[('Odvezete nás ze zámku nebo svatby?','Ano podle dostupnosti; doporučujeme předem potvrdit čas a místo vyzvednutí.'),('Lze jet do Kyjova?','Ano, regionální trasy řešíme podle aktuální dostupnosti vozů.'),('Je možné objednat minivan?','Větší vůz je možný podle dostupnosti; požadavek uveďte při rezervaci.')],
+'Vacenovice':[('Jezdíte Vacenovice – Hodonín?','Ano, trasu řešíme podle aktuální dostupnosti vozů.'),('Lze objednat pravidelnou firemní jízdu?','Ano, pravidelné jízdy a fakturaci lze domluvit individuálně.'),('Můžeme jet ve větší skupině?','Ano podle dostupnosti většího vozu. Počet osob sdělte předem.')],
+'Vracov':[('Jezdíte z Vracova do Hodonína?','Ano, jde o plánovanou regionální trasu podle dostupnosti vozů.'),('Můžu objednat odvoz z akce?','Ano, u večerních akcí doporučujeme předem potvrdit čas vyzvednutí.'),('Lze vypočítat cenu předem?','Ano, použijte kalkulačku pro silniční trasu; speciální požadavky potvrdí dispečink.')],
+'Bzenec':[('Jezdíte Bzenec – Hodonín?','Ano, plánovanou regionální trasu zajišťujeme podle aktuální dostupnosti vozů.'),('Lze objednat odvoz z vinařské akce?','Ano, u vinařských akcí doporučujeme potvrdit čas a místo vyzvednutí s předstihem.'),('Můžu platit kartou?','Ano. Platba je možná hotově i kartou podle zvoleného způsobu objednávky.')],
+'Petrov':[('Jezdíte Petrov – Hodonín?','Ano, plánovanou regionální trasu zajišťujeme podle aktuální dostupnosti vozů.'),('Lze objednat odvoz ze sklepů Plže?','Ano, sdělte prosím přesný sklep nebo orientační bod a při akcích objednávejte s předstihem.'),('Umíte přeshraniční jízdu do Skalice?','Ano, přeshraniční jízdy řešíme podle dostupnosti; doporučujeme mít platné doklady.')],
+'Sudoměřice':[('Jezdíte Sudoměřice – Hodonín?','Ano, plánovanou regionální trasu zajišťujeme podle aktuální dostupnosti vozů.'),('Umíte přeshraniční jízdu do Skalice?','Ano, přeshraniční jízdy řešíme podle dostupnosti; doporučujeme mít platné doklady.'),('Je cena předem pevná?','Cena platí pro přesně zadanou trasu. Čekání, mezizastávka nebo změna trasy ji mohou upravit.')],
+}
+
+LOC_DESC={
+'Dolní Bojanovice':'Taxi Dolní Bojanovice – plánované jízdy do Hodonína, okolních obcí, na nádraží, k lékaři a na letiště. Online i telefonická objednávka.',
+'Mikulčice':'Taxi Mikulčice nonstop pro jízdy do Hodonína, Lužic, Moravské Nové Vsi, Břeclavi, na nádraží i letiště. Cenu zjistíte předem, platit lze kartou.',
+'Prušánky':'Taxi Prušánky – odvoz do Hodonína, Břeclavi, okolních obcí, ze sklepů, akcí a na letiště. Větší vůz podle dostupnosti.',
+'Moravská Nová Ves':'Taxi Moravská Nová Ves – přeprava do Hodonína, Břeclavi, okolních obcí, na nádraží a letiště. Dispečink nonstop.',
+'Hrušky':'Taxi Hrušky – plánované jízdy do Hodonína, Břeclavi, okolních obcí, na nádraží, firemní směny a letiště.',
+'Milotice':'Taxi Milotice – jízdy do Hodonína, Kyjova, okolních obcí, na zámek, svatby, společenské akce a letiště.',
+'Vacenovice':'Taxi Vacenovice – přeprava do Hodonína, Kyjova, Ratíškovic, na akce, nádraží, firemní směny a letiště.',
+'Vracov':'Taxi Vracov – plánované jízdy do Hodonína, Kyjova, Bzence, okolních obcí, na nádraží, akce a letiště.',
+'Bzenec':'Taxi Bzenec nonstop pro jízdy do Hodonína, Kyjova, Veselí nad Moravou, Strážnice i na letiště. Cenu zjistíte předem, platit lze kartou i hotově.',
+'Petrov':'Taxi Petrov nonstop pro jízdy do Hodonína, Strážnice, Sudoměřic, ke sklepům Plže i na letiště. Cenu zjistíte předem, platit lze kartou i hotově.',
+'Sudoměřice':'Taxi Sudoměřice nonstop pro jízdy do Hodonína, Strážnice, Skalice, k Baťovu kanálu i na letiště. Cenu zjistíte předem, platit lze kartou i hotově.',
+}
+for city,slug in ALL_LOCATIONS:
     lead,routes,notes,pop=loc_data[city]
-    body,schema=location_body(city,slug,lead,routes,notes,pop)
-    pages[slug]=page_shell(f'Taxi {city} | RB Taxi Hodonín',f'Taxi {city} nonstop. Objednávka telefonicky, online nebo přes aplikaci. Cena pro zadanou trasu předem a platba kartou.',body,slug,1,schema)
+    body,schema=location_body(city,slug,lead,routes,notes,pop,loc_faq.get(city))
+    desc=LOC_DESC.get(city,f'Taxi {city} nonstop. Objednávka telefonicky, online nebo přes aplikaci. Cena pro zadanou trasu předem a platba kartou.')
+    pages[slug]=page_shell(f'Taxi {city} | RB Taxi Hodonín',desc,body,slug,1,schema)
 
 # Extra route page
 body=inner_hero('Nádraží','Taxi Hodonín nádraží','Rychlý odvoz na vlakové nebo autobusové nádraží v Hodoníně.','octavia.png')+f'''<section class="section"><div class="container content-grid"><article class="prose"><h2>Na nádraží s časovou rezervou</h2><p>Pro cestu na vlak nebo autobus doporučujeme zadat přesnou adresu nástupu, čas odjezdu spoje a přiměřenou rezervu. Ranní a večerní jízdy je vhodné objednat předem.</p><h2>Objednání</h2><p>Taxi můžete objednat telefonicky na {PHONE}, přes online objednávku nebo mobilní aplikaci RB Taxi.</p><ul class="check-list"><li>{icon('check')} Hodonín centrum → vlakové nádraží</li><li>{icon('check')} Okolní obce → nádraží Hodonín</li><li>{icon('check')} Větší vůz pro skupinu a zavazadla</li><li>{icon('check')} Platba kartou i hotově</li></ul></article><aside class="side-card"><span class="kicker">Nezmeškejte spoj</span><h3>Objednejte předem</h3><a class="big-phone" href="tel:{PHONE_HREF}">{PHONE}</a><a class="btn btn-gold" href="{ORDER_URL}">Objednat online</a></aside></div></section>'''
 pages['taxi-hodonin-nadrazi']=page_shell('Taxi Hodonín nádraží – RB Taxi','Odvoz na vlakové a autobusové nádraží v Hodoníně. Nonstop objednávka, cena předem a platba kartou.',body,'taxi-hodonin-nadrazi')
+
+# Nemocnice Hodonín (POI) — obsah převzatý z taxihodonin.com.
+faq_nem=[('Může jízdu objednat rodina?','Ano. Rodinný příslušník může uvést adresu, čas, cíl i kontaktní telefon cestujícího.'),('Jde předem domluvit zpáteční jízda?','Ano, pokud znáte přibližný čas. Při nejistém konci vyšetření doporučujeme následnou domluvu s dispečinkem.')]
+body=inner_hero('Časté cíle','Taxi nemocnice Hodonín','Plánovaný odvoz k Nemocnici TGM Hodonín na vyšetření, pro pacienty, doprovod i návštěvy.','octavia.png')+f'''<section class="section"><div class="container content-grid"><article class="prose"><h2>Odvoz k nemocnici a zpět</h2><p>Zajišťujeme cestu na vyšetření, kontrolu, návštěvu i odvoz domů po propuštění. U plánovaného termínu doporučujeme předobjednávku a přesnou domluvu místa vyzvednutí v areálu nebo před hlavním vstupem.</p><h2>Co uvést při objednávce</h2><ul class="check-list"><li>{icon('check')} přesnou adresu nástupu a požadovaný čas příjezdu</li><li>{icon('check')} zda cestuje pacient s doprovodem</li><li>{icon('check')} požadavek na více času při nástupu nebo pomoc s běžnými zavazadly</li><li>{icon('check')} orientační místo vyzvednutí pro zpáteční cestu</li></ul><h2>Okolní obce</h2><p>Na plánované zdravotní cesty jezdíme také z Lužic, Rohatce, Dubňan, Dolních Bojanovic, Ratíškovic, Mutěnic a dalších obcí podle dostupnosti vozů.</p><h2>Cena a platba</h2><p>Cena platí pro přesně zadanou trasu. Čekání, mezizastávka nebo změna cíle ji mohou upravit. U jízd mimo Hodonín může dispečink potvrdit cenu přistavení. Platba je možná hotově i kartou. Online platba, Apple Pay nebo Google Pay se řídí zvoleným způsobem objednávky.</p></article><aside class="side-card"><span class="kicker">NONSTOP 24/7</span><h3>Objednejte předem</h3><a class="big-phone" href="tel:{PHONE_HREF}">{PHONE}</a><a class="btn btn-gold" href="{ORDER_URL}">Objednat online</a><p>U plánovaného termínu doporučujeme rezervaci s časovou rezervou.</p></aside></div></section>
+<section class="section section-muted"><div class="container narrow">{section_intro('Časté otázky','Odvoz k nemocnici – praktické informace','Objednání, doprovod a zpáteční jízda.')}{faq_html(faq_nem)}</div></section>'''
+pages['taxi-nemocnice-hodonin']=page_shell('Taxi k nemocnici Hodonín | Odvoz na vyšetření i zpět','Taxi k Nemocnici TGM Hodonín na Purkyňově ulici. Plánovaný odvoz na vyšetření, pro pacienty, doprovod i návštěvy z Hodonína a okolí.',body,'taxi-nemocnice-hodonin',1,{'@context':'https://schema.org','@type':'FAQPage','mainEntity':[{'@type':'Question','name':q,'acceptedAnswer':{'@type':'Answer','text':a}} for q,a in faq_nem]})
+
+# Vozový park a oblast působení — obsah převzatý z taxihodonin.com.
+area_chips=''.join(f'<a href="../{s}/">Taxi {n}</a>' for n,s in ALL_LOCATIONS)
+poi_chips=''.join(f'<a href="../{s}/">{n}</a>' for n,s in POI)
+fleet_cards=''.join([
+  '<article class="fleet-card"><img src="../assets/images/octavia.png" alt="Škoda Octavia RB Taxi"><div><span>STANDARD</span><h3>Škoda Octavia</h3><p>1–4 cestující · klimatizace · platba kartou</p></div></article>',
+  '<article class="fleet-card"><img src="../assets/images/trafic.png" alt="Renault Trafic RB Taxi"><div><span>VAN</span><h3>Renault Trafic</h3><p>5–8 cestujících · skupiny · větší zavazadla</p></div></article>',
+  '<article class="fleet-card"><img src="../assets/images/kodiaq.png" alt="Škoda Kodiaq L&K"><div><span>VIP</span><h3>Škoda Kodiaq L&K</h3><p>1–6 cestujících · kožený interiér · 4-zone klima</p></div></article>',
+  '<article class="fleet-card"><img src="../assets/images/audi-a6.webp" alt="Audi A6"><div><span>VIP</span><h3>Audi A6</h3><p>1–3 cestující · prémiový interiér · diskrétní přeprava</p></div></article>'])
+body=inner_hero('Vozy a oblast','Vozový park a oblast působení','Moderní servisované vozy pro jednotlivce, rodiny, firmy i menší skupiny — a přehled obcí, kam jezdíme.','trafic.png')+f'''<section class="section"><div class="container">{section_intro('Vozový park','Vozový park RB Taxi Hodonín','Pro běžné jízdy i plánované transfery využíváme pravidelně servisované vozy vhodné pro jednotlivce, rodiny, firemní klienty i menší skupiny.')}<div class="fleet-grid">{fleet_cards}</div><p class="notice">Konkrétní vůz se přiřazuje podle aktuální dostupnosti, počtu osob, zavazadel, trasy a požadavků zákazníka.</p></div></section>
+<section class="section section-muted"><div class="container content-grid"><article class="prose"><h2>Kapacita a vybavení</h2><ul class="check-list"><li>{icon('check')} běžné vozy pro standardní osobní přepravu</li><li>{icon('check')} prostor pro běžná zavazadla podle typu vozu</li><li>{icon('check')} dětská sedačka nebo větší vůz pouze podle dostupnosti a předchozí domluvy</li><li>{icon('check')} platba hotově i kartou; online platba, Apple Pay nebo Google Pay se řídí zvoleným způsobem objednávky</li><li>{icon('check')} firemní režim a fakturace po dohodě</li></ul><h2>Doporučení pro objednávku</h2><p>U krátkých jízd po městě je často nejrychlejší telefon nebo aplikace. U letišť, firemních cest, ranních odjezdů, větších zavazadel a večerních akcí doporučujeme předobjednávku s přesnými údaji.</p><h2>Co říct dispečinku</h2><p>Pro správné přiřazení vozu uveďte nástup, cíl, čas, počet osob, zavazadla, požadavek na platbu kartou, dětskou sedačku, větší vůz nebo fakturaci. Díky tomu lze objednávku lépe naplánovat.</p></article><aside class="side-card"><span class="kicker">NONSTOP 24/7</span><h3>Objednejte taxi</h3><a class="big-phone" href="tel:{PHONE_HREF}">{PHONE}</a><a class="btn btn-gold" href="{ORDER_URL}">Objednat online</a></aside></div></section>
+<section class="section"><div class="container">{section_intro('Oblast působení','Kam jezdíme','Jezdíme po Hodoníně, okolních obcích, na Slovensko a na letiště Vídeň, Bratislava, Brno a Praha.')}<div class="location-chips">{area_chips}</div><h3>Časté cíle</h3><div class="location-chips">{poi_chips}</div></div></section>'''
+pages['vozovy-park-a-oblast-pusobeni']=page_shell('Vozový park a oblast působení | RB Taxi Hodonín a okolí','Vozový park RB Taxi Hodonín a oblast působení – Hodonín, Dubňany, Kyjov, Břeclav i příhraniční Slovensko. Moderní vozy s platbou kartou.',body,'vozovy-park-a-oblast-pusobeni')
+
+# Fakta o RB Taxi — obsah převzatý z taxihodonin.com.
+faq_fakta=[('Je RB Taxi dostupné nonstop?','Dispečink funguje 24/7. Dostupnost konkrétního vozu závisí na aktuální vytíženosti a dopravní situaci.'),('Je lepší objednat letiště předem?','Ano, u letišť, ranních odjezdů a delších tras doporučujeme předobjednávku.')]
+body=inner_hero('O službě','Fakta o RB Taxi','Nejdůležitější informace o objednávce, ceně, platbě, aplikaci a dispečinku na jednom místě.','octavia.png')+f'''<section class="section"><div class="container content-grid"><article class="prose"><h2>Fakta o RB Taxi Hodonín</h2><p>RB Taxi Hodonín je taxislužba pro Hodonín a okolí s telefonickou objednávkou, online objednávkou a mobilní aplikací. Níže najdete nejdůležitější informace pro zákazníky, aby bylo jasné, jak objednávka, cena a přeprava fungují.</p><h2>Jak objednat</h2><ul class="check-list"><li>{icon('check')} telefonicky přes dispečink</li><li>{icon('check')} online objednávkou</li><li>{icon('check')} přes mobilní aplikaci</li><li>{icon('check')} předobjednávkou u plánovaných tras</li></ul><h2>Cena a změna trasy</h2><p>Cena platí pro přesně zadanou trasu. Čekání, mezizastávka nebo změna cíle ji mohou upravit. U jízd mimo Hodonín může dispečink potvrdit cenu přistavení. Kalkulace pomáhá zákazníkovi předem ověřit cenu pro zadanou trasu; u změn požadavku je rozhodující skutečný průběh jízdy.</p><h2>Kde jezdíme</h2><p>Nejčastěji obsluhujeme Hodonín, Dubňany, Rohatec, Lužice, Ratíškovice, Holíč, Skalici, Kyjov, Mutěnice a další obce v regionu. Řešíme také letiště Vídeň, Bratislava, Brno a Praha.</p><h2>Platba a doklady</h2><p>Platba je možná hotově i kartou. Online platba, Apple Pay nebo Google Pay se řídí zvoleným způsobem objednávky. U firemních jízd je možné domluvit fakturaci. U přeshraničních cest doporučujeme mít připravený platný doklad.</p></article><aside class="side-card"><span class="kicker">NONSTOP 24/7</span><h3>Dispečink</h3><a class="big-phone" href="tel:{PHONE_HREF}">{PHONE}</a><a class="btn btn-gold" href="{ORDER_URL}">Objednat online</a></aside></div></section>
+<section class="section section-muted"><div class="container narrow">{section_intro('Časté dotazy','Co se nejčastěji ptáte','Dostupnost a plánování jízdy.')}{faq_html(faq_fakta)}</div></section>'''
+pages['fakta-o-rb-taxi']=page_shell('Fakta o RB Taxi – RB Taxi Hodonín','Fakta o RB Taxi Hodonín – jak objednat, jak funguje cena, platba, aplikace, dispečink a přeprava po okolí.',body,'fakta-o-rb-taxi',1,{'@context':'https://schema.org','@type':'FAQPage','mainEntity':[{'@type':'Question','name':q,'acceptedAnswer':{'@type':'Answer','text':a}} for q,a in faq_fakta]})
 
 # Legal pages
 legal_pages={
