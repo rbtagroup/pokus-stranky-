@@ -155,3 +155,22 @@ th{background:#edf6f1}
   .hero-sub{font-size:24px}
   .hero-copy .cta-row{grid-template-columns:1fr}
 }
+
+/* Kalkulačka: emerald dělá kartu světlou, ale základní styl na ní nechává
+   color:#fff, takže popisky byly bílé na světlém podkladu. Sjednoceno na
+   tmavý text a světlé prvky s emerald akcentem. */
+.calc-card{color:var(--ink)}
+.calc-card>label{color:var(--ink)}
+.calc-card>label span{color:var(--muted)}
+.calc-vehicle legend{color:var(--muted)}
+.calc-vehicle span{background:var(--white);border-color:var(--line);color:var(--ink)}
+.calc-vehicle small{color:var(--muted)}
+.calc-vehicle input:checked+span{background:var(--mint-soft);border-color:var(--emerald);box-shadow:0 0 0 3px rgba(8,122,82,.14)}
+.calc-vehicle input:focus-visible+span{outline-color:var(--emerald)}
+.calc-quick>strong{color:var(--ink)}
+.calc-quick>small{color:var(--muted)}
+.calc-quick-grid button{background:var(--white);border-color:var(--line);color:var(--ink)}
+.calc-quick-grid button:hover{border-color:var(--emerald);background:var(--mint-soft)}
+.calc-quick-grid small{color:var(--emerald)}
+.preset-row button{background:var(--white);border-color:var(--line);color:var(--ink)}
+.preset-row button:hover{border-color:var(--emerald);background:var(--mint-soft)}
