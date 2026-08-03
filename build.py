@@ -2,7 +2,10 @@ from pathlib import Path
 from html import escape
 import json, textwrap, shutil
 
-ROOT = Path('/mnt/data/rb-taxi-modern-web')
+import os
+# Ve výchozím stavu se web generuje přímo do složky se skriptem. Jiný cíl lze
+# zadat přes RB_BUILD_ROOT (užitečné pro test buildu mimo ostrou složku).
+ROOT = Path(os.environ.get('RB_BUILD_ROOT') or Path(__file__).resolve().parent)
 ASSETS = ROOT / 'assets'
 
 PHONE = '+420 777 702 702'
@@ -17,6 +20,9 @@ GOOGLE_REVIEWS = 'https://maps.google.com/?cid=14042658279160006569'
 FACEBOOK = 'https://www.facebook.com/rbtaxihodonin/'
 INSTAGRAM = 'https://www.instagram.com/rbtaxi_hodonin/'
 SITE = 'https://taxihodonin.com'
+# Emerald skin: logo + doplňkový stylesheet. Dřív se obojí dopisovalo do HTML
+# až po buildu, takže regenerace webu skin ztichla shodila. Teď je součástí buildu.
+LOGO = 'assets/images/logo-emerald.svg'
 
 NAV = [
     ('Služby', 'sluzby-a-cenik'),
@@ -94,7 +100,7 @@ def nav_html(depth):
     return f'''<header class="site-header" data-header>
       <div class="topline"><div class="container topline-inner"><span><span class="live-dot"></span> NONSTOP 24/7 · nyní v provozu</span><span>Cena předem · karta i hotově · vlastní dispečink</span></div></div>
       <div class="container nav-wrap">
-        <a class="brand" href="{rel(depth)}" aria-label="RB Taxi Hodonín – úvod"><img src="{rel(depth,'assets/images/logo.webp')}" alt="RB Taxi Hodonín"><span><b>RB TAXI</b><small>HODONÍN</small></span></a>
+        <a class="brand" href="{rel(depth)}" aria-label="RB Taxi Hodonín – úvod"><img src="{rel(depth,LOGO)}" alt="RB Taxi Hodonín"><span><b>RB TAXI</b><small>HODONÍN</small></span></a>
         <nav class="desktop-nav" aria-label="Hlavní navigace">{links}</nav>
         <div class="nav-actions"><a class="phone-link" href="tel:{PHONE_HREF}">{icon('phone')}{PHONE}</a><a class="btn btn-gold btn-sm" href="{ORDER_URL}">Objednat</a><button class="menu-btn" type="button" aria-label="Otevřít menu" aria-expanded="false" data-menu-toggle>{icon('menu')}</button></div>
       </div>
@@ -110,7 +116,7 @@ def footer_html(depth):
     locs = ' · '.join(f'<a href="{rel(depth,s)}">Taxi {n}</a>' for n,s in LOCATIONS)
     return f'''<footer class="site-footer">
       <div class="container footer-grid">
-        <div class="footer-brand"><a class="brand brand-footer" href="{rel(depth)}"><img src="{rel(depth,'assets/images/logo.webp')}" alt="RB Taxi"><span><b>RB TAXI</b><small>HODONÍN</small></span></a><p>Moderní rodinná taxislužba pro Hodonín a okolí. Nonstop dispečink, cena předem, karta i hotově.</p><div class="socials"><a href="{FACEBOOK}" aria-label="Facebook">f</a><a href="{INSTAGRAM}" aria-label="Instagram">ig</a><a href="{GOOGLE_REVIEWS}" aria-label="Google recenze">G</a></div></div>
+        <div class="footer-brand"><a class="brand brand-footer" href="{rel(depth)}"><img src="{rel(depth,LOGO)}" alt="RB Taxi"><span><b>RB TAXI</b><small>HODONÍN</small></span></a><p>Moderní rodinná taxislužba pro Hodonín a okolí. Nonstop dispečink, cena předem, karta i hotově.</p><div class="socials"><a href="{FACEBOOK}" aria-label="Facebook">f</a><a href="{INSTAGRAM}" aria-label="Instagram">ig</a><a href="{GOOGLE_REVIEWS}" aria-label="Google recenze">G</a></div></div>
         <div><h3>Služby</h3><div class="footer-links">{service_links}</div></div>
         <div><h3>Společnost</h3><div class="footer-links">{company_links}{legal_links}</div></div>
         <div><h3>Kontakt</h3><div class="footer-contact"><a href="tel:{PHONE_HREF}">{PHONE}</a><a href="tel:{PHONE_BACKUP_HREF}">{PHONE_BACKUP}</a><a href="mailto:{EMAIL}">{EMAIL}</a><p>RB Group s.r.o.<br>U Tirexu 3543<br>695 01 Hodonín<br>IČ: 14278154<br>DIČ: CZ14278154</p></div></div>
@@ -130,10 +136,16 @@ def head(title, desc, slug='', depth=0, extra_schema=None, lang='cs'):
       'openingHours':'Mo-Su 00:00-23:59','sameAs':[FACEBOOK,INSTAGRAM,GOOGLE_REVIEWS]
     }]
     if extra_schema: schemas.append(extra_schema)
-    return f'''<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>{escape(title)}</title><meta name="description" content="{escape(desc)}"><link rel="canonical" href="{canonical}"><meta name="theme-color" content="#06162d"><meta property="og:title" content="{escape(title)}"><meta property="og:description" content="{escape(desc)}"><meta property="og:type" content="website"><meta property="og:url" content="{canonical}"><meta property="og:image" content="{SITE}/wp-content/uploads/2026/05/Navrh-bez-nazvu-2-1024x768.png"><link rel="icon" href="{rel(depth,'assets/images/logo.webp')}"><link rel="stylesheet" href="{rel(depth,'assets/css/style.css')}"><script type="application/ld+json">{json.dumps(schemas,ensure_ascii=False)}</script></head>'''
+    return f'''<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>{escape(title)}</title><meta name="description" content="{escape(desc)}"><link rel="canonical" href="{canonical}"><meta name="theme-color" content="#06172c"><meta property="og:title" content="{escape(title)}"><meta property="og:description" content="{escape(desc)}"><meta property="og:type" content="website"><meta property="og:url" content="{canonical}"><meta property="og:image" content="{SITE}/wp-content/uploads/2026/05/Navrh-bez-nazvu-2-1024x768.png"><link rel="icon" href="{rel(depth,LOGO)}"><link rel="stylesheet" href="{rel(depth,'assets/css/style.css')}"><link rel="stylesheet" href="{rel(depth,'assets/css/theme-emerald.css')}"><script type="application/ld+json">{json.dumps(schemas,ensure_ascii=False)}</script></head>'''
 
 def page_shell(title, desc, body, slug='', depth=1, extra_schema=None, lang='cs'):
     return head(title,desc,slug,depth,extra_schema,lang) + '<body>' + nav_html(depth) + f'<main id="content">{body}</main>' + footer_html(depth) + f'<script src="{rel(depth,"assets/js/main.js")}" defer></script></body></html>'
+
+# Jednotná zmínka o flotile. Kapacity odpovídají sekci "Vozový park" na homepage,
+# aby se údaje napříč webem nerozcházely.
+FLEET_NOTE = ('<strong>Vozový park:</strong> Škoda Octavia (1–4 osoby) · Renault Trafic (5–8 osob) · '
+              'Škoda Kodiaq L&amp;K (1–6 osob) · Audi A6 (1–3 osoby). Konkrétní vůz přidělujeme podle '
+              'aktuální dostupnosti; požadavek na větší nebo VIP vůz uveďte už při objednávce.')
 
 def section_intro(kicker,title,text):
     return f'<div class="section-head"><span class="kicker">{kicker}</span><h2>{title}</h2><p>{text}</p></div>'
@@ -178,7 +190,21 @@ def home_body():
     <section class="section section-muted"><div class="container narrow">{section_intro('Časté otázky','Vše důležité před jízdou','Rychlé odpovědi na objednání, cenu, platbu a dostupnost.')} {faq_html(faq)}<div class="center">{cta_pair()}</div></div></section>
     <section class="final-cta"><div class="container"><div><span class="eyebrow">Jsme připraveni vyrazit</span><h2>Potřebujete taxi právě teď?</h2><p>Zavolejte na nonstop dispečink nebo zadejte jízdu online.</p></div>{cta_pair()}</div></section>'''
 
-def make_service_page(name, slug, kicker, lead, intro, bullets, sections, image='octavia.png', faq=None):
+AIRPORTS = [
+    ('Vídeň', 'taxi-letiste-viden'),
+    ('Bratislava', 'taxi-letiste-bratislava'),
+    ('Brno', 'taxi-letiste-brno'),
+    ('Praha', 'taxi-letiste-praha'),
+]
+
+def airport_links_html(slug):
+    """Prokliky mezi letištními stránkami, aby žádná nezůstala bez odkazu."""
+    chips = ''.join(f'<a href="../{s}/">Taxi letiště {n}</a>' for n, s in AIRPORTS if s != slug)
+    return (f'<section class="section"><div class="container">'
+            f'{section_intro("Další letiště","Kam ještě jezdíme","Vídeň, Bratislava, Brno i Praha zajišťujeme s rezervací předem.")}'
+            f'<div class="location-chips">{chips}</div></div></section>')
+
+def make_service_page(name, slug, kicker, lead, intro, bullets, sections, image='octavia.png', faq=None, extra_section=''):
     content = inner_hero(kicker,name,lead,image)
     content += f'<section class="section"><div class="container content-grid"><article class="prose"><h2>{intro[0]}</h2><p>{intro[1]}</p><ul class="check-list">'+''.join(f'<li>{icon("check")} {b}</li>' for b in bullets)+'</ul>'
     for title,text in sections:
@@ -188,6 +214,7 @@ def make_service_page(name, slug, kicker, lead, intro, bullets, sections, image=
         schema={'@context':'https://schema.org','@type':'FAQPage','mainEntity':[{'@type':'Question','name':q,'acceptedAnswer':{'@type':'Answer','text':a}} for q,a in faq]}
         content += f'<section class="section section-muted"><div class="container narrow">{section_intro("Časté otázky",f"Otázky ke službě {name}","Praktické informace před objednáním.")}{faq_html(faq)}</div></section>'
     else: schema=None
+    content += extra_section
     content += f'<section class="final-cta"><div class="container"><div><span class="eyebrow">RB Taxi Hodonín</span><h2>Domluvte si jízdu</h2><p>Telefonicky, online nebo v mobilní aplikaci.</p></div>{cta_pair()}</div></section>'
     return content, schema
 
@@ -278,14 +305,14 @@ pages = {}
 service_listing=''.join(f'<a class="service-card" href="../{slug}/">{icon(ic)}<div><h3>{name}</h3><p>{desc}</p></div>{icon("arrow","arrow")}</a>' for name,slug,ic,desc in SERVICES)
 faq_pricing=[('Jaká je minimální cena jízdy?','Minimální cena podle aktuálního ceníku je 100 Kč.'),('Kolik stojí jeden kilometr?','Do 50 km je sazba 30 Kč/km, nad 50 km 28 Kč/km. Nástupní sazba je 20 Kč.'),('Platí cena z aplikace?','Ano, pro přesně zadanou trasu. Čekání, mezizastávka nebo změna cíle mohou cenu upravit.'),('Kolik stojí letištní transfer?','Cena závisí na nástupní adrese, letišti, počtu osob, zavazadlech a požadovaném voze. Přesnou cenu zobrazí online objednávka nebo potvrdí dispečink.')]
 body=inner_hero('Služby a ceník','Služby RB Taxi Hodonín','Městské taxi, letiště, firmy, senioři, Drink & Drive, VIP i kurýrní přeprava.','octavia.png')
-body+=f'''<section class="section"><div class="container">{section_intro('Kompletní nabídka','Vyberte službu pro svou cestu','Všechny služby jsou dostupné podle aktuální dostupnosti vozů a předchozí domluvy.')}<div class="services-grid">{service_listing}</div></div></section>
+body+=f'''<section class="section"><div class="container">{section_intro('Kompletní nabídka','Vyberte službu pro svou cestu','Všechny služby jsou dostupné podle aktuální dostupnosti vozů a předchozí domluvy.')}<div class="services-grid">{service_listing}</div><p class="notice">{FLEET_NOTE}</p></div></section>
 <section class="section section-muted" id="cenik"><div class="container">{section_intro('Transparentní ceny','Ceník taxi Hodonín','Orientační sazby pro přesně zadanou trasu. Konečnou cenu potvrdí objednávka nebo dispečink.')}<div class="price-grid"><article class="price-card"><span>Nástupní sazba</span><strong>20 Kč</strong><small>při zahájení jízdy</small></article><article class="price-card"><span>Trasa do 50 km</span><strong>30 Kč/km</strong><small>pro zadanou trasu</small></article><article class="price-card"><span>Trasa nad 50 km</span><strong>28 Kč/km</strong><small>delší jízdy</small></article><article class="price-card"><span>Minimální jízdné</span><strong>100 Kč</strong><small>nejnižší účtovaná cena</small></article></div><p class="notice">Při změně trasy, mezizastávce nebo čekání se může cena upravit podle skutečné jízdy. U letišť, větších vozů a speciálních požadavků cenu vždy potvrďte předem.</p></div></section>
 <section class="section"><div class="container narrow">{section_intro('Časté otázky','Jak funguje cena','Nejdůležitější informace k ceníku a objednávce.')}{faq_html(faq_pricing)}</div></section>'''
 pages['sluzby-a-cenik']=(page_shell('Ceník taxi Hodonín | RB Taxi – služby a sazby','Přehled služeb a aktuálních sazeb RB Taxi Hodonín. Taxi, letiště, firmy, senior taxi, VIP, Drink & Drive a další.',body,'sluzby-a-cenik',1,{'@context':'https://schema.org','@type':'FAQPage','mainEntity':[{'@type':'Question','name':q,'acceptedAnswer':{'@type':'Answer','text':a}} for q,a in faq_pricing]}))
 
 # Order page
 body=inner_hero('Online objednávka','Objednejte si RB Taxi online','Zadejte trasu, ověřte se SMS kódem a sledujte stav objednávky.','octavia.png')
-body+=f'''<section class="section"><div class="container">{section_intro('Jak to funguje','Taxi za tři kroky','Online systém je dostupný nonstop 24/7.')}<div class="steps"><article class="step"><span>1</span><h3>Zadáte trasu</h3><p>Vyberete místo nástupu, cíl, službu a požadovaný čas.</p></article><article class="step"><span>2</span><h3>Ověříte SMS kód</h3><p>Ověřovací kód potvrdí vaše telefonní číslo a objednávku.</p></article><article class="step"><span>3</span><h3>Vůz vyrazí</h3><p>Objednávka dorazí dispečinku a stav sledujete v aplikaci.</p></article></div><div class="center"><a class="btn btn-gold" href="{ORDER_URL}">{icon('calendar')} Pokračovat k objednávce</a></div></div></section><section class="section section-muted"><div class="container narrow"><h2>Co získáte</h2>{cards([('Cena předem','Pro přesně zadanou trasu před potvrzením objednávky.','star'),('Hotově i kartou','Vyberte způsob platby, který vám vyhovuje.','card'),('Sledování jízdy','Stav objednávky a vůz na mapě v aplikaci.','pin')])}<p class="notice">Chcete řidičku? Do poznámky objednávky napište „Lady Taxi“. Zajistíme ji podle aktuální dostupnosti.</p></div></section>'''
+body+=f'''<section class="section"><div class="container">{section_intro('Jak to funguje','Taxi za tři kroky','Online systém je dostupný nonstop 24/7.')}<div class="steps"><article class="step"><span>1</span><h3>Zadáte trasu</h3><p>Vyberete místo nástupu, cíl, službu a požadovaný čas.</p></article><article class="step"><span>2</span><h3>Ověříte SMS kód</h3><p>Ověřovací kód potvrdí vaše telefonní číslo a objednávku.</p></article><article class="step"><span>3</span><h3>Vůz vyrazí</h3><p>Objednávka dorazí dispečinku a stav sledujete v aplikaci.</p></article></div><div class="center"><a class="btn btn-gold" href="{ORDER_URL}">{icon('calendar')} Pokračovat k objednávce</a></div></div></section><section class="section section-muted"><div class="container narrow"><h2>Co získáte</h2>{cards([('Cena předem','Pro přesně zadanou trasu před potvrzením objednávky.','star'),('Hotově i kartou','Vyberte způsob platby, který vám vyhovuje.','card'),('Sledování jízdy','Stav objednávky a vůz na mapě v aplikaci.','pin')])}<p class="notice">{FLEET_NOTE}</p><p class="notice">Chcete řidičku? Do poznámky objednávky napište „Lady Taxi“. Zajistíme ji podle aktuální dostupnosti.</p></div></section>'''
 pages['objednavka']=page_shell('Objednat taxi online – RB Taxi Hodonín','Objednejte RB Taxi Hodonín online: trasa, cena předem, SMS ověření a stav objednávky. Nonstop 24/7.',body,'objednavka')
 
 # App page
@@ -344,10 +371,14 @@ for title,slug,kicker,lead,intro,bullets,sections,image in service_defs:
 
 # Airport pages
 faq_air=[('Kolik hodin před odletem vyrazit?','Záleží na letišti, čase odletu, dopravě a požadavcích aerolinky. Čas vyzvednutí potvrdí dispečink s bezpečnou rezervou.'),('Lze objednat větší vůz?','Ano, Renault Trafic až pro 8 osob je dostupný po domluvě. Uveďte počet osob a zavazadel.'),('Umíte fakturu pro firmu?','Ano, firemní režim a fakturaci lze nastavit po předchozí dohodě.'),('Co uvést u příletu?','Číslo letu, telefon cestujícího, počet osob a zavazadel. Pomůže to reagovat na případné zpoždění.')]
-body,schema=make_service_page('Taxi letiště Vídeň','taxi-letiste-viden','Letištní transfer','Transfer Hodonín → Vídeň-Schwechat bez stresu, s předem domluveným časem a cenou.',('Transfer na letiště Vídeň','Trasa z Hodonína na letiště Vídeň-Schwechat patří mezi nejčastější letištní transfery RB Taxi.'),['přesná adresa vyzvednutí','čas odletu nebo příletu a číslo letu','počet cestujících a zavazadel','větší vůz nebo dětská sedačka po domluvě','firemní fakturace podle dohody'],[('Plánování vyzvednutí','Čas určujeme podle odletu, doporučené rezervy, dne v týdnu a aktuální dopravy. U ranních letů doporučujeme rezervovat co nejdříve.'),('Orientační cena','Hodonín – letiště Vídeň je přibližně 105 km. Cena za celý vůz se vždy potvrzuje pro konkrétní adresu, termín a počet osob.'),('Přílet zpět','U příletu pomůže číslo letu a telefon cestujícího, abychom mohli reagovat na změny.')],'kodiaq.png',faq_air)
+body,schema=make_service_page('Taxi letiště Vídeň','taxi-letiste-viden','Letištní transfer','Transfer Hodonín → Vídeň-Schwechat bez stresu, s předem domluveným časem a cenou.',('Transfer na letiště Vídeň','Trasa z Hodonína na letiště Vídeň-Schwechat patří mezi nejčastější letištní transfery RB Taxi.'),['přesná adresa vyzvednutí','čas odletu nebo příletu a číslo letu','počet cestujících a zavazadel','větší vůz nebo dětská sedačka po domluvě','firemní fakturace podle dohody'],[('Plánování vyzvednutí','Čas určujeme podle odletu, doporučené rezervy, dne v týdnu a aktuální dopravy. U ranních letů doporučujeme rezervovat co nejdříve.'),('Orientační cena','Hodonín – letiště Vídeň je přibližně 105 km. Cena za celý vůz se vždy potvrzuje pro konkrétní adresu, termín a počet osob.'),('Přílet zpět','U příletu pomůže číslo letu a telefon cestujícího, abychom mohli reagovat na změny.')],'kodiaq.png',faq_air,airport_links_html('taxi-letiste-viden'))
 pages['taxi-letiste-viden']=page_shell('Taxi Hodonín – letiště Vídeň | Transfer Schwechat','Transfer Hodonín na letiště Vídeň-Schwechat. Cena předem, standardní i větší vůz, firemní fakturace a nonstop dispečink.',body,'taxi-letiste-viden',1,schema)
-body,schema=make_service_page('Taxi letiště Bratislava','taxi-letiste-bratislava','Letištní transfer','Transfer Hodonín → letiště Bratislava s rezervací předem a přesným časem vyzvednutí.',('Transfer na letiště Bratislava','Pohodlná cesta pro dovolenou, služební cestu, ranní odlet i pozdní přílet.'),['přesná adresa a čas letu','číslo letu pro zpáteční vyzvednutí','standardní nebo větší vůz','dětská sedačka podle dostupnosti','firemní fakturace po domluvě'],[('Plánování trasy','Čas vyzvednutí nastavíme s rezervou podle dopravy, odbavení a požadavků aerolinky.'),('Zavazadla a větší vůz','U větší skupiny nebo více kufrů rezervujte Renault Trafic s předstihem.'),('Přílet zpět','Uveďte číslo letu a telefon cestujícího pro lepší koordinaci.')],'kodiaq.png',faq_air)
+body,schema=make_service_page('Taxi letiště Bratislava','taxi-letiste-bratislava','Letištní transfer','Transfer Hodonín → letiště Bratislava s rezervací předem a přesným časem vyzvednutí.',('Transfer na letiště Bratislava','Pohodlná cesta pro dovolenou, služební cestu, ranní odlet i pozdní přílet.'),['přesná adresa a čas letu','číslo letu pro zpáteční vyzvednutí','standardní nebo větší vůz','dětská sedačka podle dostupnosti','firemní fakturace po domluvě'],[('Plánování trasy','Čas vyzvednutí nastavíme s rezervou podle dopravy, odbavení a požadavků aerolinky.'),('Zavazadla a větší vůz','U větší skupiny nebo více kufrů rezervujte Renault Trafic s předstihem.'),('Přílet zpět','Uveďte číslo letu a telefon cestujícího pro lepší koordinaci.')],'kodiaq.png',faq_air,airport_links_html('taxi-letiste-bratislava'))
 pages['taxi-letiste-bratislava']=page_shell('Taxi Hodonín – letiště Bratislava | RB Taxi','Transfer z Hodonína na letiště Bratislava. Rezervace předem, cena pro zadanou trasu a nonstop dispečink.',body,'taxi-letiste-bratislava',1,schema)
+body,schema=make_service_page('Taxi letiště Brno','taxi-letiste-brno','Letištní transfer','Transfer Hodonín → Letiště Brno-Tuřany bez stresu, s předem domluveným časem a cenou.',('Transfer na letiště Brno','Brno-Tuřany je z Hodonína nejbližší letiště, takže se hodí i pro kratší dovolenou, služební cestu nebo brzký ranní odlet.'),['přesná adresa vyzvednutí','čas odletu nebo příletu a číslo letu','počet cestujících a zavazadel','větší vůz nebo dětská sedačka po domluvě','firemní fakturace podle dohody'],[('Plánování vyzvednutí','Čas určujeme podle odletu, doporučené rezervy, dne v týdnu a aktuální dopravy. U ranních letů doporučujeme rezervovat co nejdříve.'),('Orientační cena','Hodonín – Letiště Brno-Tuřany je přibližně 63 km, jízda trvá zhruba 1 hodinu a 10 minut. Orientační cena za celý vůz začíná na 1 586 Kč pro osobní vůz (1–4 osoby) a 2 212 Kč pro větší vůz (5–8 osob). Konečnou cenu potvrzujeme pro konkrétní adresu, termín a počet osob.'),('Přílet zpět','U příletu pomůže číslo letu a telefon cestujícího, abychom mohli reagovat na změny.')],'kodiaq.png',faq_air,airport_links_html('taxi-letiste-brno'))
+pages['taxi-letiste-brno']=page_shell('Taxi Hodonín – letiště Brno | Transfer Brno-Tuřany','Transfer z Hodonína na Letiště Brno-Tuřany. Cena předem, standardní i větší vůz, firemní fakturace a nonstop dispečink.',body,'taxi-letiste-brno',1,schema)
+body,schema=make_service_page('Taxi letiště Praha','taxi-letiste-praha','Letištní transfer','Transfer Hodonín → Letiště Václava Havla Praha bez stresu, s předem domluveným časem a cenou.',('Transfer na letiště Praha','Trasa Hodonín – Praha je dlouhý plánovaný transfer napříč Moravou a Čechami. Vůz proto doporučujeme rezervovat s výrazným předstihem.'),['přesná adresa vyzvednutí','čas odletu nebo příletu a číslo letu','terminál, pokud ho znáte','počet cestujících a zavazadel','větší vůz, dětská sedačka nebo firemní fakturace po domluvě'],[('Plánování vyzvednutí','Počítáme s provozem na dálnici D1, průjezdem Prahou a dojezdem ke správnému terminálu. U ranních letů obvykle vyjíždíme už večer nebo v noci.'),('Orientační cena','Hodonín – Letiště Václava Havla Praha je přibližně 281 km, jízda trvá zhruba 3 hodiny a 20 minut. Orientační cena za celý vůz začíná na 7 039 Kč pro osobní vůz (1–4 osoby) a 9 847 Kč pro větší vůz (5–8 osob). Konečnou cenu potvrzujeme pro konkrétní adresu, termín a počet osob.'),('Přílet zpět','Uveďte číslo letu, terminál a telefon cestujícího. U dlouhé zpáteční trasy je dobré počítat s rezervou na vyzvednutí zavazadel.')],'kodiaq.png',faq_air,airport_links_html('taxi-letiste-praha'))
+pages['taxi-letiste-praha']=page_shell('Taxi Hodonín – letiště Praha | Transfer Václava Havla','Transfer z Hodonína na Letiště Václava Havla Praha. Rezervace předem, cena pro zadanou trasu a nonstop dispečink.',body,'taxi-letiste-praha',1,schema)
 
 # Location pages
 loc_data={
@@ -444,5 +475,8 @@ Potom otevřete `http://localhost:8080`.
 python3 build.py
 ```
 '''
-(ROOT/'README.md').write_text(README,encoding='utf-8')
+# README je ručně udržovaný (emerald varianta), takže ho build nepřepisuje.
+# Vygeneruje se jen tehdy, když ve složce ještě žádný není.
+if not (ROOT/'README.md').exists():
+    (ROOT/'README.md').write_text(README,encoding='utf-8')
 print(f'Generated {len(pages)+1} pages')
